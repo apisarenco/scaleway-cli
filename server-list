@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+import requests, json, sys
+from tabulate import tabulate
+
+url = "https://cp-ams1.scaleway.com/servers"
+token_data = json.loads(sys.stdin.read())["token"]
+
+headers = {
+    'content-type': 'application/json',
+    'X-Auth-Token': token_data["id"]
+}
+
+response = requests.request("GET", url, headers=headers)
+
+if '--json' in sys.argv:
+    print(response.text)
+    exit(0)
+
+servers = json.loads(response.text)['servers']
+
+offcolor = "\033[2m"
+oncolor = "\033[1m"
+nocolor = "\033[0m"
+res = []
+for server in sorted(servers, key=lambda s: s["name"].lower()):
+    color = oncolor if server["state"]=='running' else offcolor
+    res.append(
+        [
+            server["name"],
+            color + server["state"] + nocolor,
+            server["public_ip"]["address"],
+            server["private_ip"],
+            server["commercial_type"],
+            server["id"]
+        ]
+    )
+
+print(tabulate(res, ["Name", "State", "Pub IP", "Priv IP", "Type", "Id"], tablefmt="pipe"))
+
